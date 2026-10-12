@@ -477,7 +477,8 @@ public class ControlElement {
     }
 
     private boolean isVisuallyPressed() {
-        return selected || currentPointerId != -1;
+        // Touch feedback removed: only the selected/toggled state is drawn, not the finger-down state.
+        return selected;
     }
 
     private Rect expandedBounds(Rect rect, int padding) {
@@ -666,10 +667,10 @@ public class ControlElement {
                         paint
                 );
 
-                drawDPadPiece(canvas, cx, cy - dist, piece, 0, states.length > 0 && states[0]);
-                drawDPadPiece(canvas, cx + dist, cy, piece, 1, states.length > 1 && states[1]);
-                drawDPadPiece(canvas, cx, cy + dist, piece, 2, states.length > 2 && states[2]);
-                drawDPadPiece(canvas, cx - dist, cy, piece, 3, states.length > 3 && states[3]);
+                drawDPadPiece(canvas, cx, cy - dist, piece, 0, false);
+                drawDPadPiece(canvas, cx + dist, cy, piece, 1, false);
+                drawDPadPiece(canvas, cx, cy + dist, piece, 2, false);
+                drawDPadPiece(canvas, cx - dist, cy, piece, 3, false);
                 break;
             }
 
@@ -691,21 +692,14 @@ public class ControlElement {
 
                 
                 
-                boolean isPressingSegment = currentPointerId != -1 && !scroller.isScrolling();
-                Binding pressedBinding = scroller.getBinding();
 
                 if (orientation == 0) {
                     float startX = boundingBox.left - scrollOffset % elementSize;
                     for (byte i = rangeIndex[0]; i < rangeIndex[1]; i++) {
                         int index = i % range.max;
                         String text = getRangeTextForIndex(range, index);
-                        boolean segmentPressed = isPressingSegment && pressedBinding == getRangeBindingForIndex(range, index);
                         if (startX < boundingBox.right && startX + elementSize > boundingBox.left) {
-                            if (segmentPressed) {
-                                setupPaint(paint, Paint.Style.FILL, withAlpha(getThemeColor(), 150), 0);
-                                canvas.drawRect(startX, boundingBox.top, startX + elementSize, boundingBox.bottom, paint);
-                            }
-                            drawCenteredText(canvas, text, startX + elementSize * 0.5f, y, elementSize - strokeWidth * 2, minTextSize, segmentPressed ? 0xffffffff : getThemeColor());
+                            drawCenteredText(canvas, text, startX + elementSize * 0.5f, y, elementSize - strokeWidth * 2, minTextSize, getThemeColor());
                         }
                         startX += elementSize;
                     }
@@ -714,13 +708,8 @@ public class ControlElement {
                     float startY = boundingBox.top - scrollOffset % elementSize;
                     for (byte i = rangeIndex[0]; i < rangeIndex[1]; i++) {
                         String text = getRangeTextForIndex(range, i);
-                        boolean segmentPressed = isPressingSegment && pressedBinding == getRangeBindingForIndex(range, i);
                         if (startY < boundingBox.bottom && startY + elementSize > boundingBox.top) {
-                            if (segmentPressed) {
-                                setupPaint(paint, Paint.Style.FILL, withAlpha(getThemeColor(), 150), 0);
-                                canvas.drawRect(boundingBox.left, startY, boundingBox.right, startY + elementSize, paint);
-                            }
-                            drawCenteredText(canvas, text, x, startY + elementSize * 0.5f, boundingBox.width() - strokeWidth * 2, minTextSize, segmentPressed ? 0xffffffff : getThemeColor());
+                            drawCenteredText(canvas, text, x, startY + elementSize * 0.5f, boundingBox.width() - strokeWidth * 2, minTextSize, getThemeColor());
                         }
                         startY += elementSize;
                     }
