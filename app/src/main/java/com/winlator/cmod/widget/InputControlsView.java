@@ -582,8 +582,6 @@ public class InputControlsView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
-        boolean hapticsEnabled = preferences.getBoolean("touchscreen_haptics_enabled", true);
-
         // Do not let the auto-hide runnable hide controls while a finger is still down.
         // This fixes controls disappearing under load or while holding a stick/button.
         updateTouchscreenTimeout(event);
@@ -640,7 +638,7 @@ public class InputControlsView extends View {
                             handled = true;
 
                             // Trigger haptic feedback for input controls
-                            if (hapticsEnabled) {
+                            if (preferences.getBoolean("touchscreen_haptics_enabled", true)) {
                                 Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
                                 if (vibrator != null && vibrator.hasVibrator()) {
                                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
