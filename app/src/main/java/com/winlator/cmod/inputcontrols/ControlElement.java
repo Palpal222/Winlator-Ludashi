@@ -477,7 +477,6 @@ public class ControlElement {
     }
 
     private boolean isVisuallyPressed() {
-        // Touch feedback removed: only the selected/toggled state is drawn, not the finger-down state.
         return selected;
     }
 
