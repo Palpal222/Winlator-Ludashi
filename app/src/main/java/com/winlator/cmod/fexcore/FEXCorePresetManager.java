@@ -61,8 +61,19 @@ public class FEXCorePresetManager {
             envVars.put("FEX_HALFBARRIERTSOENABLED", "0");
             envVars.put("FEX_X87REDUCEDPRECISION", "1");
             envVars.put("FEX_MULTIBLOCK", "1");
+            envVars.put("FEX_DYNAMICL1CACHE", "1");
+            envVars.put("FEX_DISABLEL2CACHE", "0");
+        }
+        else if (id.equals(FEXCorePreset.PERFORMANCE_V2)) {
+            envVars.put("FEX_TSOENABLED", "0");
+            envVars.put("FEX_VECTORTSOENABLED", "0");
+            envVars.put("FEX_MEMCPYSETTSOENABLED", "0");
+            envVars.put("FEX_HALFBARRIERTSOENABLED", "0");
+            envVars.put("FEX_X87REDUCEDPRECISION", "1");
+            envVars.put("FEX_MULTIBLOCK", "1");
             envVars.put("FEX_DYNAMICL1CACHE", "0");
             envVars.put("FEX_DISABLEL2CACHE", "0");
+            envVars.put("FEX_SMCCHECKS", "none");
         }
         else if (id.startsWith(FEXCorePreset.CUSTOM)) {
             for (String[] preset : customPresetsIterator(context)) {
@@ -82,6 +93,7 @@ public class FEXCorePresetManager {
         presets.add(new FEXCorePreset(FEXCorePreset.COMPATIBILITY, context.getString(R.string.compatibility)));
         presets.add(new FEXCorePreset(FEXCorePreset.INTERMEDIATE, context.getString(R.string.intermediate)));
         presets.add(new FEXCorePreset(FEXCorePreset.PERFORMANCE, context.getString(R.string.performance)));
+        presets.add(new FEXCorePreset(FEXCorePreset.PERFORMANCE_V2, context.getString(R.string.performance_v2)));
         for (String[] preset : customPresetsIterator(context)) presets.add(new FEXCorePreset(preset[0], preset[1]));
         return presets;
     }
