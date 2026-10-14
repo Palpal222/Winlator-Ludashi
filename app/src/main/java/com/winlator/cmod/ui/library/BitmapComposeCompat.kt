@@ -195,7 +195,7 @@ internal fun LibraryRoot(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(if (grid) 172.dp else 360.dp),
+                columns = GridCells.Adaptive(if (grid) (if (landscape) 140.dp else 172.dp) else 360.dp),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 112.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
