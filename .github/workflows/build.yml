@@ -67,11 +67,18 @@ jobs:
           test -s app/src/main/jniLibs/arm64-v8a/libVkLayer_khronos_validation.so
 
       - name: Build with Gradle
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleAntutuRelease assembleLudashiRelease
 
-      - name: Upload APK Artifact
+      - name: Upload Antutu APK
         uses: actions/upload-artifact@v4
         with:
-          name: Bionic-Build-${{ github.run_number }}
-          path: app/build/outputs/apk/release/*.apk
+          name: Antutu-Build-${{ github.run_number }}
+          path: app/build/outputs/apk/antutu/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload Ludashi APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ludashi-Build-${{ github.run_number }}
+          path: app/build/outputs/apk/ludashi/release/*.apk
           if-no-files-found: error
