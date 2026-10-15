@@ -77,6 +77,7 @@ public class InputControlsView extends View {
     private Runnable hideControlsRunnable; // Runnable to hide the controls
 
     private SharedPreferences preferences;
+    private Vibrator vibrator;
 
     private ControlElement stickElement;
 
@@ -528,19 +529,7 @@ public class InputControlsView extends View {
 
 
     @Override
-    public boolean dispatchGenericMotionEvent(MotionEvent event) {
-        Log.d("InputControlsView", "dispatchGenericMotionEvent called. Source: " + event.getSource());
-        return super.dispatchGenericMotionEvent(event);
-    }
-
-
-    @Override
     public boolean onGenericMotionEvent(MotionEvent event) {
-
-        Log.d("InputControlsView", "Motion event received. Source: " + event.getSource());
-        Log.d("InputControlsView", "Device ID: " + event.getDeviceId());
-        Log.d("InputControlsView", "Profile is " + (profile != null ? "set" : "null"));
-
 
         if (!editMode && profile != null) {
             // Retrieve the associated controller for this event
@@ -561,10 +550,6 @@ public class InputControlsView extends View {
                 if (controllerBinding != null) {
                     handleInputEvent(controller, controllerBinding.getBinding(), controller.state.isPressed(ExternalController.IDX_BUTTON_R2));
                 }
-
-                Log.d("InputEvent", "Event source: " + event.getSource());
-                Log.d("InputEvent", "Device ID: " + event.getDeviceId());
-                Log.d("InputEvent", "Action: " + event.getAction());
 
                 // Process joystick inputs for mouse movement and other bindings
                 processJoystickInput(controller);
@@ -636,20 +621,7 @@ public class InputControlsView extends View {
                     for (ControlElement element : profile.getElements()) {
                         if (element.handleTouchDown(pointerId, x, y)) {
                             handled = true;
-
-                            // Trigger haptic feedback for input controls
-                            if (preferences.getBoolean("touchscreen_haptics_enabled", true)) {
-                                Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
-                                if (vibrator != null && vibrator.hasVibrator()) {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                        vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE));
-                                    } else {
-                                        vibrator.vibrate(50); // Legacy method for older Android versions
-                                    }
-
-                                }
-
-                            }
+                            performHaptics();
                         }
                         if (element.getBindingAt(0) == Binding.MOUSE_LEFT_BUTTON) {
                             touchpadView.setPointerButtonLeftEnabled(false);
@@ -659,17 +631,22 @@ public class InputControlsView extends View {
                     break;
                 }
                 case MotionEvent.ACTION_MOVE: {
-                    for (byte i = 0, count = (byte)event.getPointerCount(); i < count; i++) {
+                    boolean forwardToTouchpad = false;
+                    for (int i = 0, count = event.getPointerCount(); i < count; i++) {
                         float x = event.getX(i);
                         float y = event.getY(i);
                         int pid = event.getPointerId(i);
 
                         handled = false;
                         for (ControlElement element : profile.getElements()) {
-                            if (element.handleTouchMove(pid, x, y)) handled = true;
+                            if (element.handleTouchMove(pid, x, y)) {
+                                handled = true;
+                                break;
+                            }
                         }
-                        if (!handled) touchpadView.onTouchEvent(event);
+                        if (!handled) forwardToTouchpad = true;
                     }
+                    if (forwardToTouchpad) touchpadView.onTouchEvent(event);
                     break;
                 }
                 case MotionEvent.ACTION_UP:
@@ -686,6 +663,16 @@ public class InputControlsView extends View {
 
 
 
+
+    private void performHaptics() {
+        if (!preferences.getBoolean("touchscreen_haptics_enabled", true)) return;
+        if (vibrator == null) vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+        else vibrator.vibrate(50);
+    }
 
     private void updateTouchscreenTimeout(MotionEvent event) {
         if (!AUTO_HIDE_CONTROLS || timeoutHandler == null || hideControlsRunnable == null) return;
