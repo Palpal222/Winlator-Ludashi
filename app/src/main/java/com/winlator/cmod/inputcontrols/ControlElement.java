@@ -1029,8 +1029,10 @@ public class ControlElement {
                 Binding firstBinding = getBindingAt(0);
                 if (firstBinding.isGamepad()) {
                     
-                    if (interpolator == null) interpolator = new CubicBezierInterpolator();
-                    interpolator.set(0.075f, 0.95f, 0.45f, 0.95f);
+                    if (interpolator == null) {
+                        interpolator = new CubicBezierInterpolator();
+                        interpolator.set(0.075f, 0.95f, 0.45f, 0.95f);
+                    }
                     
                     float valueX = deltaX;
                     float valueY = deltaY;
