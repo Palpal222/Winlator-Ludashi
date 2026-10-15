@@ -99,7 +99,6 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.antutu.ABenchMark"
         minSdkVersion 28
         // We’re preserving Winlator’s request to keep targetSdkVersion at 28
         targetSdkVersion 28
@@ -130,6 +129,18 @@ android {
     kotlinOptions {
         jvmTarget = '17'
         freeCompilerArgs += ['-opt-in=androidx.compose.material3.ExperimentalMaterial3Api']
+    }
+
+    flavorDimensions "pkg"
+    productFlavors {
+        antutu {
+            dimension "pkg"
+            applicationId "com.antutu.ABenchMark"
+        }
+        ludashi {
+            dimension "pkg"
+            applicationId "com.ludashi.benchmark"
+        }
     }
 
     // Keep Winlator’s buildTypes
