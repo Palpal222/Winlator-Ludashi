@@ -73,6 +73,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private static final String ORIENTATION_MODE_AUTO = "auto";
     private static final String ORIENTATION_MODE_VERTICAL = "vertical";
     private static final String ORIENTATION_MODE_HORIZONTAL = "horizontal";
+    private static final String PREF_ORIENTATION_MODE = "orientation_mode";
+    private static final String PREF_ORIENTATION_LOCKED = "orientation_locked";
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private BottomNavigationView bottomNavigation;
@@ -120,6 +122,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         super.onCreate(savedInstanceState);
         applyImmersiveMode();
+
+        orientationMode = sharedPreferences.getString(PREF_ORIENTATION_MODE, ORIENTATION_MODE_AUTO);
+        orientationLocked = sharedPreferences.getBoolean(PREF_ORIENTATION_LOCKED, false);
+        applyOrientationMode();
 
         if (!sharedPreferences.getBoolean(OnboardingActivity.PREF_ONBOARDING_COMPLETE, false)) {
             startActivity(new Intent(this, OnboardingActivity.class));
@@ -309,20 +315,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public boolean toggleOrientationLock() {
         orientationLocked = !orientationLocked;
+        saveOrientationSettings();
         applyOrientationMode();
         return orientationLocked;
     }
 
     public boolean toggleVerticalMode() {
         orientationMode = isVerticalModeEnabled() ? ORIENTATION_MODE_AUTO : ORIENTATION_MODE_VERTICAL;
+        saveOrientationSettings();
         applyOrientationMode();
         return isVerticalModeEnabled();
     }
 
     public boolean toggleHorizontalMode() {
         orientationMode = isHorizontalModeEnabled() ? ORIENTATION_MODE_AUTO : ORIENTATION_MODE_HORIZONTAL;
+        saveOrientationSettings();
         applyOrientationMode();
         return isHorizontalModeEnabled();
+    }
+
+    private void saveOrientationSettings() {
+        sharedPreferences.edit()
+                .putString(PREF_ORIENTATION_MODE, orientationMode)
+                .putBoolean(PREF_ORIENTATION_LOCKED, orientationLocked)
+                .apply();
     }
 
     private void applyOrientationMode() {
