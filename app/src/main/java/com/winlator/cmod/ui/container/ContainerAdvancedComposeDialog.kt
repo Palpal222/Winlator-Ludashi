@@ -94,7 +94,10 @@ private val advancedEnvSpecs = mapOf(
     "WINE_NEW_MEDIASOURCE" to AdvancedEnvSpec(AdvancedEnvKind.CHECKBOX, listOf("0", "1")),
     "GALLIUM_HUD" to AdvancedEnvSpec(AdvancedEnvKind.MULTI, listOf("simple", "fps", "frametime")),
     "WINE_LARGE_ADDRESS_AWARE" to AdvancedEnvSpec(AdvancedEnvKind.CHECKBOX, listOf("0", "1")),
-    "WINEDLLOVERRIDES" to AdvancedEnvSpec(AdvancedEnvKind.TEXT)
+    "WINEDLLOVERRIDES" to AdvancedEnvSpec(AdvancedEnvKind.TEXT)),
+    "DXVK_CONFIG_FILE" to AdvancedEnvSpec(AdvancedEnvKind.TEXT)),
+    "DXVK_STATE_CACHE" to AdvancedEnvSpec(AdvancedEnvKind.CHECKBOX, listOf("0", "1")),
+    "WRAPPER_NO_PATCH_OPCONSTCOMP" to AdvancedEnvSpec(AdvancedEnvKind.CHECKBOX, listOf("0", "1")
 )
 
 private val componentRows = listOf(
