@@ -131,6 +131,7 @@ object ContainerAdvancedComposeDialog {
             setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             attributes = attributes.apply { dimAmount = 0.76f }
+            setSoftInputMode((attributes.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST) or WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN)
         }
         dialog.setOnShowListener {
             dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
