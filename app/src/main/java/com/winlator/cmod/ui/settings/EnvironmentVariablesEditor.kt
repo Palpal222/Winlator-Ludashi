@@ -68,6 +68,9 @@ val knownEnvironmentVariables = listOf(
     EnvVariableSpec("GALLIUM_HUD", EnvValueKind.MULTI, listOf("simple", "fps", "frametime")),
     EnvVariableSpec("WINE_LARGE_ADDRESS_AWARE", EnvValueKind.CHECKBOX, listOf("0", "1")),
     EnvVariableSpec("WINEDLLOVERRIDES", EnvValueKind.TEXT)
+    EnvVariableSpec("DXVK_CONFIG_FILE", EnvValueKind.TEXT),
+    EnvVariableSpec("DXVK_STATE_CACHE", EnvValueKind.CHECKBOX, listOf("0", "1")),
+    EnvVariableSpec("WRAPPER_NO_PATCH_OPCONSTCOMP", EnvValueKind.CHECKBOX, listOf("0", "1"))
 )
 
 fun parseEnvironmentVariables(raw: String): List<EditableEnvVariable> {
