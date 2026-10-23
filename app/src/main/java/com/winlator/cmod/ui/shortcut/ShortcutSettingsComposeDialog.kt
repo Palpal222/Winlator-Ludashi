@@ -22,6 +22,7 @@ object ShortcutSettingsComposeDialog {
             setBackgroundDrawable(ColorDrawable(android.graphics.Color.BLACK))
             decorView.setPadding(0, 0, 0, 0)
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setSoftInputMode((attributes.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST) or WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN)
             WindowCompat.setDecorFitsSystemWindows(this, false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 attributes = attributes.apply {
