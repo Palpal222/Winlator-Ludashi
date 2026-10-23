@@ -30,6 +30,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.tabs.TabLayout;
+import com.winlator.cmod.MainActivity;
 import com.winlator.cmod.R;
 import com.winlator.cmod.XrActivity;
 
@@ -69,8 +70,7 @@ public abstract class AppUtils {
     }
 
     public static void restartApplication(Context context, int selectedMenuItemId) {
-        Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-        Intent mainIntent = Intent.makeRestartActivityTask(intent.getComponent());
+        Intent mainIntent = Intent.makeRestartActivityTask(MainActivity.getLaunchComponent(context));
         if (selectedMenuItemId > 0) mainIntent.putExtra("selected_menu_item_id", selectedMenuItemId);
         context.startActivity(mainIntent);
         Runtime.getRuntime().exit(0);
