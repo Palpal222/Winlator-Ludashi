@@ -71,6 +71,22 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.winlator.cmod.MainActivityLandscape"
+            android:theme="@style/AppTheme.Dark"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
+
+        <activity
+            android:name="com.winlator.cmod.MainActivityPortrait"
+            android:theme="@style/AppTheme.Dark"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
+
         <activity android:name="com.winlator.cmod.BigPictureActivity" android:theme="@style/Theme.AppCompat" android:exported="false" />
 
         <activity
