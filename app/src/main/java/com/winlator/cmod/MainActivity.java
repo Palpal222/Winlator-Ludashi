@@ -2,6 +2,8 @@ package com.winlator.cmod;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -104,6 +106,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
+        orientationMode = sharedPreferences.getString(PREF_ORIENTATION_MODE, ORIENTATION_MODE_AUTO);
+        orientationLocked = sharedPreferences.getBoolean(PREF_ORIENTATION_LOCKED, false);
+        requestSavedOrientation();
+
         // Persist the default value on first run so all other components
         // (dialogs, fragments) read the correct value instead of their own default
         if (!sharedPreferences.contains("dark_mode")) {
@@ -122,10 +128,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         super.onCreate(savedInstanceState);
         applyImmersiveMode();
-
-        orientationMode = sharedPreferences.getString(PREF_ORIENTATION_MODE, ORIENTATION_MODE_AUTO);
-        orientationLocked = sharedPreferences.getBoolean(PREF_ORIENTATION_LOCKED, false);
-        applyOrientationMode();
 
         if (!sharedPreferences.getBoolean(OnboardingActivity.PREF_ONBOARDING_COMPLETE, false)) {
             startActivity(new Intent(this, OnboardingActivity.class));
@@ -341,7 +343,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .apply();
     }
 
+    public static ComponentName getLaunchComponent(Context context) {
+        String mode = PreferenceManager.getDefaultSharedPreferences(context)
+                .getString(PREF_ORIENTATION_MODE, ORIENTATION_MODE_AUTO);
+        if (ORIENTATION_MODE_HORIZONTAL.equals(mode)) return new ComponentName(context, MainActivityLandscape.class);
+        if (ORIENTATION_MODE_VERTICAL.equals(mode)) return new ComponentName(context, MainActivityPortrait.class);
+        return new ComponentName(context, MainActivity.class);
+    }
+
     private void applyOrientationMode() {
+        requestSavedOrientation();
+        invalidateOptionsMenu();
+    }
+
+    private void requestSavedOrientation() {
         switch (orientationMode) {
             case ORIENTATION_MODE_VERTICAL:
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -355,7 +370,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         : ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
                 break;
         }
-        invalidateOptionsMenu();
     }
 
     @Override
