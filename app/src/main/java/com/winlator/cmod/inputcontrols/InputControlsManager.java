@@ -107,9 +107,45 @@ public class InputControlsManager {
             }
         }
 
-        Collections.sort(profiles);
+        sortProfiles(profiles);
         this.profiles = profiles;
         profilesLoaded = true;
+    }
+
+    public static int compareNatural(String a, String b) {
+        int i = 0;
+        int j = 0;
+        while (i < a.length() && j < b.length()) {
+            char ca = a.charAt(i);
+            char cb = b.charAt(j);
+            if (Character.isDigit(ca) && Character.isDigit(cb)) {
+                int startA = i;
+                int startB = j;
+                while (i < a.length() && Character.isDigit(a.charAt(i))) i++;
+                while (j < b.length() && Character.isDigit(b.charAt(j))) j++;
+                String numA = a.substring(startA, i).replaceFirst("^0+(?=.)", "");
+                String numB = b.substring(startB, j).replaceFirst("^0+(?=.)", "");
+                if (numA.length() != numB.length()) return numA.length() - numB.length();
+                int cmp = numA.compareTo(numB);
+                if (cmp != 0) return cmp;
+            }
+            else {
+                int cmp = Character.compare(Character.toLowerCase(ca), Character.toLowerCase(cb));
+                if (cmp != 0) return cmp;
+                i++;
+                j++;
+            }
+        }
+        return (a.length() - i) - (b.length() - j);
+    }
+
+    private static void sortProfiles(ArrayList<ControlsProfile> list) {
+        Collections.sort(list, (a, b) -> {
+            String nameA = a.getName() != null ? a.getName() : "";
+            String nameB = b.getName() != null ? b.getName() : "";
+            int cmp = compareNatural(nameA, nameB);
+            return cmp != 0 ? cmp : Integer.compare(a.id, b.id);
+        });
     }
 
     public ControlsProfile createProfile(String name) {
@@ -117,6 +153,7 @@ public class InputControlsManager {
         profile.setName(name);
         profile.save();
         profiles.add(profile);
+        sortProfiles(profiles);
         return profile;
     }
 
@@ -148,6 +185,7 @@ public class InputControlsManager {
 
         ControlsProfile profile = loadProfile(context, newFile);
         profiles.add(profile);
+        sortProfiles(profiles);
         return profile;
     }
 
@@ -178,6 +216,7 @@ public class InputControlsManager {
                 profiles.set(foundIndex, newProfile);
             }
             else profiles.add(newProfile);
+            sortProfiles(profiles);
             return newProfile;
         }
         catch (JSONException e) {
