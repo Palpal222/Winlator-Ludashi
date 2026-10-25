@@ -2,9 +2,11 @@ package com.winlator.cmod;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -110,21 +112,36 @@ public class InputControlsFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != MainActivity.OPEN_FILE_REQUEST_CODE
                 || resultCode != Activity.RESULT_OK
-                || data == null
-                || data.getData() == null) return;
+                || data == null) return;
 
-        try {
-            ControlsProfile importedProfile = manager.importProfile(
-                    new JSONObject(FileUtils.readString(requireContext(), data.getData()))
-            );
-            if (importProfileCallback != null) importProfileCallback.call(importedProfile);
+        ArrayList<Uri> uris = new ArrayList<>();
+        ClipData clipData = data.getClipData();
+        if (clipData != null) {
+            for (int i = 0; i < clipData.getItemCount(); i++) uris.add(clipData.getItemAt(i).getUri());
         }
-        catch (Exception e) {
-            AppUtils.showToast(requireContext(), R.string.unable_to_import_profile);
+        else if (data.getData() != null) uris.add(data.getData());
+        if (uris.isEmpty()) return;
+
+        ControlsProfile lastImported = null;
+        int failed = 0;
+        for (Uri uri : uris) {
+            try {
+                ControlsProfile imported = manager.importProfile(
+                        new JSONObject(FileUtils.readString(requireContext(), uri))
+                );
+                if (imported != null) lastImported = imported;
+                else failed++;
+            }
+            catch (Exception e) {
+                failed++;
+            }
         }
-        finally {
-            importProfileCallback = null;
-        }
+
+        if (lastImported != null && importProfileCallback != null) importProfileCallback.call(lastImported);
+        importProfileCallback = null;
+
+        if (failed == uris.size()) AppUtils.showToast(requireContext(), R.string.unable_to_import_profile);
+        else if (failed > 0) AppUtils.showToast(requireContext(), failed + " of " + uris.size() + " profiles could not be imported");
     }
 
     private InputControlsCallbacks createCallbacks() {
@@ -297,6 +314,7 @@ public class InputControlsFragment extends Fragment {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         requireActivity().startActivityFromFragment(
                 this,
                 intent,
