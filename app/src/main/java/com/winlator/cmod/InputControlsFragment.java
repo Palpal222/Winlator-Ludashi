@@ -6,8 +6,10 @@ import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +41,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InputControlsFragment extends Fragment {
@@ -121,6 +124,7 @@ public class InputControlsFragment extends Fragment {
         }
         else if (data.getData() != null) uris.add(data.getData());
         if (uris.isEmpty()) return;
+        Collections.sort(uris, (a, b) -> compareNatural(getDisplayName(a), getDisplayName(b)));
 
         ControlsProfile lastImported = null;
         int failed = 0;
@@ -142,6 +146,46 @@ public class InputControlsFragment extends Fragment {
 
         if (failed == uris.size()) AppUtils.showToast(requireContext(), R.string.unable_to_import_profile);
         else if (failed > 0) AppUtils.showToast(requireContext(), failed + " of " + uris.size() + " profiles could not be imported");
+    }
+
+    private static int compareNatural(String a, String b) {
+        int i = 0;
+        int j = 0;
+        while (i < a.length() && j < b.length()) {
+            char ca = a.charAt(i);
+            char cb = b.charAt(j);
+            if (Character.isDigit(ca) && Character.isDigit(cb)) {
+                int startA = i;
+                int startB = j;
+                while (i < a.length() && Character.isDigit(a.charAt(i))) i++;
+                while (j < b.length() && Character.isDigit(b.charAt(j))) j++;
+                String numA = a.substring(startA, i).replaceFirst("^0+(?=.)", "");
+                String numB = b.substring(startB, j).replaceFirst("^0+(?=.)", "");
+                if (numA.length() != numB.length()) return numA.length() - numB.length();
+                int cmp = numA.compareTo(numB);
+                if (cmp != 0) return cmp;
+            }
+            else {
+                int cmp = Character.compare(Character.toLowerCase(ca), Character.toLowerCase(cb));
+                if (cmp != 0) return cmp;
+                i++;
+                j++;
+            }
+        }
+        return (a.length() - i) - (b.length() - j);
+    }
+
+    private String getDisplayName(Uri uri) {
+        try (Cursor cursor = requireContext().getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(0);
+                if (name != null) return name;
+            }
+        }
+        catch (Exception e) {
+        }
+        String segment = uri.getLastPathSegment();
+        return segment != null ? segment : "";
     }
 
     private InputControlsCallbacks createCallbacks() {
