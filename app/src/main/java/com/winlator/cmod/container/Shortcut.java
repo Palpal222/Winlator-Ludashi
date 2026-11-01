@@ -30,6 +30,7 @@ public class Shortcut {
     public final String wmClass;
     private final JSONObject extraData = new JSONObject();
     private Bitmap coverArt;
+    private boolean coverArtLoaded;
     private String customCoverArtPath;
 
     private static final String COVER_ART_DIR = "app_data/cover_arts/";
@@ -114,7 +115,6 @@ public class Shortcut {
         this.wmClass = wmClass;
 
         this.customCoverArtPath = getExtra("customCoverArtPath");
-        loadCoverArt();
         Container.checkObsoleteOrMissingProperties(extraData);
     }
 
@@ -132,8 +132,18 @@ public class Shortcut {
         }
     }
 
-    public Bitmap getCoverArt() { return coverArt; }
-    public void setCoverArt(Bitmap coverArt) { this.coverArt = coverArt; }
+    public Bitmap getCoverArt() {
+        if (!coverArtLoaded && coverArt == null) {
+            coverArtLoaded = true;
+            loadCoverArt();
+        }
+        return coverArt;
+    }
+
+    public void setCoverArt(Bitmap coverArt) {
+        this.coverArt = coverArt;
+        this.coverArtLoaded = true;
+    }
     public String getCustomCoverArtPath() { return customCoverArtPath; }
 
     public void setCustomCoverArtPath(String customCoverArtPath) {
@@ -224,6 +234,7 @@ public class Shortcut {
 
         this.customCoverArtPath = null;
         this.coverArt = null;
+        this.coverArtLoaded = true;
         putExtra("customCoverArtPath", null);
         saveData();
     }

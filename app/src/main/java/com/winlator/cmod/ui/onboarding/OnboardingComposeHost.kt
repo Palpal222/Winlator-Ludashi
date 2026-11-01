@@ -45,6 +45,7 @@ interface OnboardingCallbacks {
     fun onRemoveBundledRuntime()
     fun onBrowseLocal()
     fun onBrowseDriver()
+    fun onBrowseWrapper()
     fun onRuntimeSelected(runtimeIdentifier: String)
     fun onRequestPermissions()
     fun onRetryCore()
