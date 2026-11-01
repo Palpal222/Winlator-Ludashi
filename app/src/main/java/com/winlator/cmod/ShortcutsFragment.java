@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
@@ -98,6 +99,10 @@ public class ShortcutsFragment extends Fragment {
     private static final String STEAMGRID_BASE_URL = "https://www.steamgriddb.com/api/v2/";
     private static String STEAMGRID_API_KEY = "0324c52513634547a7b32d6d323635d0";
     private static final ExecutorService DYNAMIC_SHORTCUT_EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final ExecutorService LIBRARY_LOAD_EXECUTOR = Executors.newSingleThreadExecutor();
+    private boolean skipNextResumeReload;
+    private int loadGeneration;
+    private View libraryView;
     private static final AtomicInteger DYNAMIC_SHORTCUT_SYNC_GENERATION = new AtomicInteger();
     private static volatile String lastDynamicShortcutSignature;
 
@@ -178,7 +183,8 @@ public class ShortcutsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         manager = new ContainerManager(getContext());
-        loadShortcutsList();
+        loadShortcutsListAsync();
+        skipNextResumeReload = true;
         if (getActivity() != null && ((AppCompatActivity) getActivity()).getSupportActionBar() != null) {
             ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(R.string.library);
         }
@@ -187,7 +193,18 @@ public class ShortcutsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (manager != null && libraryController != null) loadShortcutsList();
+        if (skipNextResumeReload) {
+            skipNextResumeReload = false;
+            return;
+        }
+        if (manager != null && libraryController != null) loadShortcutsListAsync();
+    }
+
+    @Override
+    public void onDestroyView() {
+        loadGeneration++;
+        libraryView = null;
+        super.onDestroyView();
     }
 
     @Nullable
@@ -239,7 +256,9 @@ public class ShortcutsFragment extends Fragment {
                 }
         );
         libraryController = binding.getController();
-        return binding.getView();
+        libraryView = binding.getView();
+        libraryView.setVisibility(View.INVISIBLE);
+        return libraryView;
     }
 
     @Override
@@ -466,7 +485,49 @@ public class ShortcutsFragment extends Fragment {
         return targetDir;
     }
 
+    private void loadShortcutsListAsync() {
+        if (manager == null) return;
+        final int generation = ++loadGeneration;
+        final ContainerManager loader = manager;
+        final Resources resources = getResources();
+        final View view = libraryView;
+        LIBRARY_LOAD_EXECUTOR.execute(() -> {
+            ArrayList<Shortcut> loaded = null;
+            boolean failed = false;
+            try {
+                loaded = loader.loadShortcuts();
+                if (loaded != null) {
+                    loaded.removeIf(shortcut -> shortcut == null || shortcut.file == null || shortcut.file.getName().isEmpty());
+                    Bitmap defaultIcon = BitmapFactory.decodeResource(resources, R.drawable.icon_wine);
+                    for (Shortcut shortcut : loaded) {
+                        if (shortcut.icon == null) shortcut.icon = defaultIcon;
+                    }
+                }
+            }
+            catch (Exception e) {
+                failed = true;
+            }
+
+            final ArrayList<Shortcut> result = loaded;
+            final boolean reloadOnUi = failed;
+            if (view == null) return;
+            view.post(() -> {
+                if (generation != loadGeneration || !isAdded() || libraryController == null) return;
+                if (reloadOnUi) {
+                    loadShortcutsList();
+                    return;
+                }
+                allShortcuts.clear();
+                if (result != null) allShortcuts.addAll(result);
+                publishLibraryItems();
+                syncDynamicAppShortcuts();
+                view.setVisibility(View.VISIBLE);
+            });
+        });
+    }
+
     public void loadShortcutsList() {
+        loadGeneration++;
         ArrayList<Shortcut> shortcuts = manager.loadShortcuts();
         allShortcuts.clear();
         if (shortcuts != null) {
@@ -479,6 +540,7 @@ public class ShortcutsFragment extends Fragment {
         }
         publishLibraryItems();
         syncDynamicAppShortcuts();
+        if (libraryView != null) libraryView.setVisibility(View.VISIBLE);
     }
 
     private Shortcut findShortcut(String shortcutPath) {
