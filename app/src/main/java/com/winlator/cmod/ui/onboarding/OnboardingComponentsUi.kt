@@ -54,7 +54,7 @@ private val bundledRuntimeName = ProtonPackageManager.getPackage(ProtonPackageMa
     ?: "Proton 10.0-5 arm64ec"
 
 private val componentCategories = listOf(
-    "Recommended", "Wine & Proton", "DXVK", "VKD3D", "FEXCore", "Box64", "WOWBox64", "AdrenoTools"
+    "Recommended", "Wine & Proton", "DXVK", "VKD3D", "FEXCore", "Box64", "WOWBox64", "AdrenoTools", "Wrapper"
 )
 
 private val latestRecommendedTypes = setOf("DXVK", "VKD3D", "FEXCore", "Box64", "WOWBox64")
@@ -163,7 +163,7 @@ internal fun OnboardingComponentsScreen(
         it.installed && (it.type == "Wine" || it.type == "Proton") && !it.runtimeIdentifier.isNullOrBlank()
     }
     val showBundled = category == "Recommended" || category == "Wine & Proton"
-    val showLocalInstallProgress = installing == "local" || installing == "driver-local"
+    val showLocalInstallProgress = installing == "local" || installing == "driver-local" || installing == "wrapper-local"
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         if (landscape) {
@@ -191,6 +191,10 @@ internal fun OnboardingComponentsScreen(
                         OutlinedButton(onClick = { cb.onBrowseDriver() }, modifier = Modifier.fillMaxWidth()) {
                             Text("Install local driver")
                         }
+                    }
+                    if (category == "Wrapper") {
+                        Spacer(Modifier.height(10.dp))
+                        WrapperImportCard(enabled = installing == null, onImport = { cb.onBrowseWrapper() })
                     }
                     if (showBundled) {
                         Spacer(Modifier.height(12.dp))
@@ -249,6 +253,10 @@ internal fun OnboardingComponentsScreen(
                     if (category == "AdrenoTools") {
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(onClick = { cb.onBrowseDriver() }) { Text("Install local driver") }
+                    }
+                    if (category == "Wrapper") {
+                        Spacer(Modifier.height(8.dp))
+                        WrapperImportCard(enabled = installing == null, onImport = { cb.onBrowseWrapper() })
                     }
                     if (showBundled) {
                         Spacer(Modifier.height(10.dp))
@@ -483,6 +491,31 @@ private fun ComponentCard(
                 } else {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WrapperImportCard(enabled: Boolean, onImport: () -> Unit) {
+    Surface(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.padding(13.dp)) {
+            Text("Vulkan wrappers", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Import a wrapper package (.tzst) and choose it per container or shortcut.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(onClick = onImport, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.Folder, null)
+                Spacer(Modifier.width(6.dp))
+                Text("Import wrapper")
             }
         }
     }
