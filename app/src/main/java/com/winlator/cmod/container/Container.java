@@ -49,6 +49,7 @@ public class Container {
     private String envVars = DEFAULT_ENV_VARS;
     private String graphicsDriver = DEFAULT_GRAPHICS_DRIVER;
     private String graphicsDriverConfig = DEFAULT_GRAPHICSDRIVERCONFIG;
+    private String vkWrapper = "default";
     private String dxwrapper = DEFAULT_DXWRAPPER;
     private String dxwrapperConfig = "";
     private String wincomponents = DEFAULT_WINCOMPONENTS;
@@ -129,6 +130,14 @@ public class Container {
 
     public void setGraphicsDriver(String graphicsDriver) {
         this.graphicsDriver = graphicsDriver;
+    }
+
+    public String getVkWrapper() {
+        return vkWrapper;
+    }
+
+    public void setVkWrapper(String vkWrapper) {
+        this.vkWrapper = vkWrapper != null && !vkWrapper.isEmpty() ? vkWrapper : "default";
     }
 
     public String getGraphicsDriverConfig() {
@@ -490,6 +499,7 @@ public class Container {
             if (syncCpuTopology) data.put("syncCpuTopology", true);
             data.put("graphicsDriver", graphicsDriver);
             data.put("graphicsDriverConfig", getGraphicsDriverConfig());
+            data.put("vkWrapper", vkWrapper);
             data.put("rendererNative", rendererNative);
             data.put("rendererPresentMode", rendererPresentMode);
             if (!rendererDriverId.isEmpty()) data.put("rendererDriverId", rendererDriverId);
@@ -526,6 +536,7 @@ public class Container {
     public void loadData(JSONObject data) throws JSONException {
         wineVersion = WineInfo.MAIN_WINE_VERSION.identifier();
         dxwrapperConfig = "";
+        vkWrapper = "default";
         checkObsoleteOrMissingProperties(data);
 
         for (Iterator<String> it = data.keys(); it.hasNext(); ) {
@@ -554,6 +565,9 @@ public class Container {
                     break;
                 case "graphicsDriverConfig" :
                     setGraphicsDriverConfig(data.getString(key));
+                    break;
+                case "vkWrapper" :
+                    setVkWrapper(data.getString(key));
                     break;
                 case "rendererNative" :
                     rendererNative = data.getBoolean(key);
