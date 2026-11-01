@@ -80,6 +80,7 @@ import com.winlator.cmod.box64.Box64PresetManager
 import com.winlator.cmod.container.Container
 import com.winlator.cmod.container.ContainerManager
 import com.winlator.cmod.container.Shortcut
+import com.winlator.cmod.contents.WrapperManager
 import com.winlator.cmod.core.DefaultVersion
 import com.winlator.cmod.core.FileUtils
 import com.winlator.cmod.core.GPUInformation
@@ -175,6 +176,7 @@ private class ShortcutEditorStateV2(val shortcut: Shortcut) {
     var displayXBackPressure by mutableStateOf(shortcut.getDisplayXBackPressure())
     var displayXPrecisePresentation by mutableStateOf(shortcut.getDisplayXPrecisePresentation())
     var graphicsDriver by mutableStateOf(StringUtils.parseIdentifier(shortcut.getExtra("graphicsDriver", container.getGraphicsDriver())))
+    var vkWrapper by mutableStateOf(shortcut.getExtra(WrapperManager.EXTRA_KEY, container.getVkWrapper()))
     private val defaultDriverVersion = runCatching {
         val context = container.manager.context
         if (GPUInformation.isDriverSupported(DefaultVersion.WRAPPER_ADRENO, context)) DefaultVersion.WRAPPER_ADRENO else DefaultVersion.WRAPPER
@@ -322,6 +324,12 @@ private class ShortcutEditorStateV2(val shortcut: Shortcut) {
         }
         envVars = raw
         shortcut.putExtra("envVars", raw.ifBlank { null })
+        save()
+    }
+
+    fun selectVkWrapper(value: String) {
+        vkWrapper = value
+        shortcut.putExtra(WrapperManager.EXTRA_KEY, value)
         save()
     }
 
@@ -1027,6 +1035,14 @@ private fun ShortcutCategoryV2(
                 SettingChoice("Graphics Driver", graphicsEntries.firstOrNull { StringUtils.parseIdentifier(it).equals(s.graphicsDriver, true) } ?: s.graphicsDriver, graphicsEntries) {
                     s.selectGraphicsDriver(StringUtils.parseIdentifier(it))
                 }
+                SettingsDivider()
+                val wrapperManager = remember { WrapperManager(context) }
+                val wrapperLabels = remember { wrapperManager.labels() }
+                SettingChoice(
+                    "Vulkan Wrapper",
+                    wrapperManager.labelFor(wrapperManager.resolve(s.vkWrapper)),
+                    wrapperLabels
+                ) { s.selectVkWrapper(wrapperManager.identifierForLabel(it)) }
                 catalog?.let { c ->
                     SettingsDivider()
                     SettingDriverChoice("Driver Version", s.driverVersion, c.drivers, s.installing, installDriver) {
