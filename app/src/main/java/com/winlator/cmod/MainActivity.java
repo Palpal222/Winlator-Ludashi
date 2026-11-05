@@ -493,17 +493,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void show(Fragment fragment, boolean reverse) {
         FragmentManager fragmentManager = getSupportFragmentManager();
-        if (reverse) {
-            fragmentManager.beginTransaction()
-                    .setCustomAnimations(R.anim.slide_in_down, R.anim.slide_out_up)
-                    .replace(R.id.FLFragmentContainer, fragment)
-                    .commit();
-        } else {
-            fragmentManager.beginTransaction()
-                    .setCustomAnimations(R.anim.slide_in_up, R.anim.slide_out_down)
-                    .replace(R.id.FLFragmentContainer, fragment)
-                    .commit();
-        }
+        fragmentManager.beginTransaction()
+                .setReorderingAllowed(true)
+                .setCustomAnimations(R.anim.tab_fade_in, R.anim.tab_fade_out)
+                .replace(R.id.FLFragmentContainer, fragment)
+                .commit();
 
         drawerLayout.closeDrawer(GravityCompat.START);
     }
