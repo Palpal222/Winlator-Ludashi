@@ -2,8 +2,6 @@ package com.winlator.cmod.ui.library
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.Handler
-import android.os.Looper
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
@@ -14,7 +12,6 @@ import com.winlator.cmod.MainActivity
 import com.winlator.cmod.ui.LibraryToolbarActions
 import com.winlator.cmod.ui.applyAppFullscreen
 import com.winlator.cmod.ui.theme.WinZTheme
-import java.util.concurrent.atomic.AtomicInteger
 
 @Immutable
 data class LibraryItem(
@@ -47,19 +44,9 @@ class LibraryComposeController internal constructor(
     private val selectedShortcutPath: MutableState<String?>
 ) {
     private val statePreferences = context.getSharedPreferences("library_compose_state", Context.MODE_PRIVATE)
-    private val metadataGeneration = AtomicInteger(0)
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun setItems(value: List<LibraryItem>) {
-        val snapshot = value.toList()
-        items.value = snapshot
-        val generation = metadataGeneration.incrementAndGet()
-        Thread {
-            val resolved = resolveLibraryEnvironmentLabels(context, snapshot)
-            mainHandler.post {
-                if (metadataGeneration.get() == generation) items.value = resolved
-            }
-        }.start()
+        items.value = value
     }
 
     fun setGridView(value: Boolean) { grid.value = value }
