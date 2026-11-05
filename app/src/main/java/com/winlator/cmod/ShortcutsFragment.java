@@ -53,6 +53,7 @@ import com.winlator.cmod.ui.library.LibraryCallbacks;
 import com.winlator.cmod.ui.library.LibraryComposeBinding;
 import com.winlator.cmod.ui.library.LibraryComposeController;
 import com.winlator.cmod.ui.library.LibraryComposeHost;
+import com.winlator.cmod.ui.library.LibraryEnvironment;
 import com.winlator.cmod.ui.library.LibraryItem;
 
 import com.google.gson.Gson;
@@ -77,8 +78,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -103,6 +106,9 @@ public class ShortcutsFragment extends Fragment {
     private boolean skipNextResumeReload;
     private int loadGeneration;
     private View libraryView;
+    private static volatile List<Shortcut> cachedShortcuts;
+    private static volatile List<LibraryItem> cachedItems;
+    private Map<String, String> environmentLabels = Collections.emptyMap();
     private static final AtomicInteger DYNAMIC_SHORTCUT_SYNC_GENERATION = new AtomicInteger();
     private static volatile String lastDynamicShortcutSignature;
 
@@ -257,7 +263,14 @@ public class ShortcutsFragment extends Fragment {
         );
         libraryController = binding.getController();
         libraryView = binding.getView();
-        libraryView.setVisibility(View.INVISIBLE);
+        List<Shortcut> shortcutsSnapshot = cachedShortcuts;
+        List<LibraryItem> itemsSnapshot = cachedItems;
+        if (shortcutsSnapshot != null && itemsSnapshot != null) {
+            allShortcuts.addAll(shortcutsSnapshot);
+            libraryController.setItems(itemsSnapshot);
+        } else {
+            libraryView.setAlpha(0f);
+        }
         return libraryView;
     }
 
@@ -490,9 +503,11 @@ public class ShortcutsFragment extends Fragment {
         final int generation = ++loadGeneration;
         final ContainerManager loader = manager;
         final Resources resources = getResources();
+        final Context appContext = requireContext().getApplicationContext();
         final View view = libraryView;
         LIBRARY_LOAD_EXECUTOR.execute(() -> {
             ArrayList<Shortcut> loaded = null;
+            List<LibraryItem> resolved = null;
             boolean failed = false;
             try {
                 loaded = loader.loadShortcuts();
@@ -502,6 +517,7 @@ public class ShortcutsFragment extends Fragment {
                     for (Shortcut shortcut : loaded) {
                         if (shortcut.icon == null) shortcut.icon = defaultIcon;
                     }
+                    resolved = LibraryEnvironment.resolve(appContext, buildLibraryItems(loaded, null), loaded);
                 }
             }
             catch (Exception e) {
@@ -509,6 +525,7 @@ public class ShortcutsFragment extends Fragment {
             }
 
             final ArrayList<Shortcut> result = loaded;
+            final List<LibraryItem> resolvedItems = resolved;
             final boolean reloadOnUi = failed;
             if (view == null) return;
             view.post(() -> {
@@ -519,9 +536,13 @@ public class ShortcutsFragment extends Fragment {
                 }
                 allShortcuts.clear();
                 if (result != null) allShortcuts.addAll(result);
-                publishLibraryItems();
+                List<LibraryItem> items = resolvedItems != null ? resolvedItems : new ArrayList<>();
+                environmentLabels = labelsOf(items);
+                libraryController.setItems(items);
+                cachedShortcuts = new ArrayList<>(allShortcuts);
+                cachedItems = items;
                 syncDynamicAppShortcuts();
-                view.setVisibility(View.VISIBLE);
+                if (view.getAlpha() < 1f) view.animate().alpha(1f).setDuration(150).start();
             });
         });
     }
@@ -540,7 +561,32 @@ public class ShortcutsFragment extends Fragment {
         }
         publishLibraryItems();
         syncDynamicAppShortcuts();
-        if (libraryView != null) libraryView.setVisibility(View.VISIBLE);
+        if (libraryView != null) libraryView.setAlpha(1f);
+        refreshEnvironmentLabelsAsync();
+    }
+
+    private void refreshEnvironmentLabelsAsync() {
+        if (libraryView == null || getContext() == null) return;
+        final int generation = loadGeneration;
+        final Context appContext = getContext().getApplicationContext();
+        final View view = libraryView;
+        final List<Shortcut> snapshot = new ArrayList<>(allShortcuts);
+        LIBRARY_LOAD_EXECUTOR.execute(() -> {
+            List<LibraryItem> resolved = LibraryEnvironment.resolve(appContext, buildLibraryItems(snapshot, null), snapshot);
+            view.post(() -> {
+                if (generation != loadGeneration || !isAdded() || libraryController == null) return;
+                environmentLabels = labelsOf(resolved);
+                libraryController.setItems(resolved);
+                cachedShortcuts = new ArrayList<>(allShortcuts);
+                cachedItems = resolved;
+            });
+        });
+    }
+
+    private static Map<String, String> labelsOf(List<LibraryItem> items) {
+        Map<String, String> labels = new HashMap<>();
+        for (LibraryItem item : items) labels.put(item.getShortcutPath(), item.getContainerName());
+        return labels;
     }
 
     private Shortcut findShortcut(String shortcutPath) {
@@ -552,21 +598,34 @@ public class ShortcutsFragment extends Fragment {
 
     private void publishLibraryItems() {
         if (libraryController == null) return;
-        ArrayList<LibraryItem> items = new ArrayList<>();
-        for (Shortcut shortcut : allShortcuts) {
-            String baseName = FileUtils.getBasename(shortcut.file.getPath());
-            File userIcon = new File(getImagesDir(false), baseName + ".user.png");
-            File autoIcon = new File(getImagesDir(false), baseName + ".png");
-            File cover = new File(getImagesDir(true), baseName + ".png");
-            File banner = new File(getBannerDir(), baseName + ".png");
+        List<LibraryItem> items = buildLibraryItems(allShortcuts, environmentLabels);
+        libraryController.setItems(items);
+        cachedShortcuts = new ArrayList<>(allShortcuts);
+        cachedItems = items;
+    }
+
+    private List<LibraryItem> buildLibraryItems(List<Shortcut> shortcuts, Map<String, String> labels) {
+        ArrayList<LibraryItem> items = new ArrayList<>(shortcuts.size());
+        File imagesDir = getImagesDir(false);
+        File coversDir = getImagesDir(true);
+        File bannerDir = getBannerDir();
+        for (Shortcut shortcut : shortcuts) {
+            String path = shortcut.file.getPath();
+            String baseName = FileUtils.getBasename(path);
+            File userIcon = new File(imagesDir, baseName + ".user.png");
+            File autoIcon = new File(imagesDir, baseName + ".png");
+            File cover = new File(coversDir, baseName + ".png");
+            File banner = new File(bannerDir, baseName + ".png");
             String iconPath = userIcon.exists() ? userIcon.getPath() :
                     (autoIcon.exists() ? autoIcon.getPath() : null);
+            String containerName = shortcut.container != null ? shortcut.container.getName() : "";
+            if (labels != null && labels.containsKey(path)) containerName = labels.get(path);
 
             items.add(new LibraryItem(
-                    shortcut.file.getPath(),
-                    shortcut.file.getPath(),
+                    path,
+                    path,
                     shortcut.name,
-                    shortcut.container != null ? shortcut.container.getName() : "",
+                    containerName,
                     cover.exists() ? cover.getPath() : null,
                     banner.exists() ? banner.getPath() : null,
                     iconPath,
@@ -575,7 +634,7 @@ public class ShortcutsFragment extends Fragment {
                     parseLastRunAt(shortcut)
             ));
         }
-        libraryController.setItems(items);
+        return items;
     }
 
     private long parseLastRunAt(Shortcut shortcut) {
