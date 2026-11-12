@@ -151,7 +151,7 @@ preBuild.dependsOn(downloadComponentTools)
 
 android {
     sourceSets.main.jniLibs.srcDir(layout.buildDirectory.dir("generated/component-tools"))
-    namespace 'com.winlator.cmod'
+    namespace 'com.ludashi.benchmark'
     // Keep compileSdk from your current config. If you want to match Termux-X11, you could set to 34.
     compileSdk 35
     buildToolsVersion "35.0.0"
@@ -161,7 +161,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.winlator.cmod"
+        applicationId "com.ludashi.benchmark"
         minSdkVersion 28
         // We’re preserving Winlator’s request to keep targetSdkVersion at 28
         targetSdkVersion 28
@@ -194,16 +194,6 @@ android {
         freeCompilerArgs += ['-opt-in=androidx.compose.material3.ExperimentalMaterial3Api']
     }
 
-    signingConfigs {
-        upstream {
-            storeFile file(System.getenv("LUDASHI_KEYSTORE_PATH") ?: "missing-upstream-signing.p12")
-            storeType "PKCS12"
-            storePassword System.getenv("LUDASHI_STORE_PASSWORD") ?: ""
-            keyAlias "upstream"
-            keyPassword System.getenv("LUDASHI_STORE_PASSWORD") ?: ""
-        }
-    }
-
     // Keep Winlator’s buildTypes
     buildTypes {
         debug {
@@ -211,7 +201,7 @@ android {
         }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.upstream
+            signingConfig signingConfigs.debug
             crunchPngs false
         }
     }
