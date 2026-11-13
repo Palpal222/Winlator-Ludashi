@@ -316,6 +316,8 @@ public class FpsLimiterControl extends LinearLayout {
     }
 
     private Shortcut openShortcutStore(Container container) {
+        XServerDisplayActivity activity = findActivity();
+        if (activity != null && activity.getShortcut() != null) return activity.getShortcut();
         if (shortcutFile == null || !shortcutFile.isFile()) return null;
         return new Shortcut(container, shortcutFile);
     }
