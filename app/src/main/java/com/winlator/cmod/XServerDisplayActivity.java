@@ -3566,6 +3566,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
         return xServerView;
     }
 
+    public Shortcut getShortcut() {
+        return shortcut;
+    }
+
     public Container getContainer() {
         return container;
     }
