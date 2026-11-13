@@ -67,6 +67,7 @@ import com.winlator.cmod.contentdialog.WineD3DConfigDialog;
 import com.winlator.cmod.contents.ContentProfile;
 import com.winlator.cmod.contents.ContentsManager;
 import com.winlator.cmod.contents.AdrenotoolsManager;
+import com.winlator.cmod.contents.WrapperManager;
 import com.winlator.cmod.core.AppUtils;
 import com.winlator.cmod.core.DefaultVersion;
 import com.winlator.cmod.core.EnvVars;
@@ -170,6 +171,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
     private Runnable editInputControlsCallback;
     private Shortcut shortcut;
     private String graphicsDriver = Container.DEFAULT_GRAPHICS_DRIVER;
+    private String vkWrapper = WrapperManager.DEFAULT_WRAPPER;
     private HashMap<String, String> graphicsDriverConfig;
     private String audioDriver = Container.DEFAULT_AUDIO_DRIVER;
     private String emulator = Container.DEFAULT_EMULATOR;
@@ -513,6 +515,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
         }
 
         graphicsDriver = container.getGraphicsDriver();
+        vkWrapper = container.getVkWrapper();
         String graphicsDriverConfig = container.getGraphicsDriverConfig();
         audioDriver = Container.normalizeAudioDriver(container.getAudioDriver());
         emulator = container.getEmulator();
@@ -531,6 +534,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
             shortcut.saveData();
 
             graphicsDriver = shortcut.getExtra("graphicsDriver", container.getGraphicsDriver());
+            vkWrapper = shortcut.getExtra(WrapperManager.EXTRA_KEY, container.getVkWrapper());
             graphicsDriverConfig = shortcut.getExtra("graphicsDriverConfig", container.getGraphicsDriverConfig());
             audioDriver = shortcut.getAudioDriver();
             emulator = shortcut.getExtra("emulator", container.getEmulator());
@@ -3082,6 +3086,30 @@ public class XServerDisplayActivity extends AppCompatActivity {
         }
     }
 
+    private void installSelectedWrapper(File rootDir, File marker) {
+        WrapperManager wrapperManager = new WrapperManager(this);
+        String target = wrapperManager.resolve(vkWrapper);
+        String active = marker.isFile() ? FileUtils.readString(marker) : null;
+        active = active != null ? active.trim() : "";
+        if (active.isEmpty()) active = WrapperManager.DEFAULT_WRAPPER;
+        if (target.equals(active)) return;
+
+        boolean success = true;
+        if (!WrapperManager.DEFAULT_WRAPPER.equals(active) || WrapperManager.DEFAULT_WRAPPER.equals(target)) {
+            success = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper.tzst", rootDir);
+        }
+        if (success && !WrapperManager.DEFAULT_WRAPPER.equals(target)) {
+            success = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, wrapperManager.fileFor(target), rootDir);
+        }
+        if (success) {
+            FileUtils.writeString(marker, target);
+            Log.d("GraphicsDriverExtraction", "Active wrapper: " + target);
+        }
+        else {
+            Log.w("GraphicsDriverExtraction", "Failed to install wrapper: " + target);
+        }
+    }
+
     private void extractGraphicsDriverFiles() {
         String adrenoToolsDriverId = graphicsDriverConfig.get("version");
 
@@ -3111,6 +3139,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
         // Gamescope wrapper instead of the repository's common wrapper asset.
         File graphicsRuntimeMarker = new File(rootDir,
                 "usr/lib/.winlator-graphics-runtime-c7474f7e-25b50a11-v3-stock-wrapper");
+        File activeWrapperMarker = new File(rootDir, "usr/lib/.winlator-active-wrapper");
         if (firstTimeBoot || !graphicsRuntimeMarker.isFile()) {
             Log.d("XServerDisplayActivity", "Installing paired Pipetto wrapper and common graphics runtime");
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper" + ".tzst",
@@ -3120,7 +3149,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
                     rootDir);
             FileUtils.writeString(graphicsRuntimeMarker,
                     "wrapper=c7474f7e;extra_libs=25b50a11;layers=9d57736d;opengl=split-v1");
+            FileUtils.writeString(activeWrapperMarker, WrapperManager.DEFAULT_WRAPPER);
         }
+
+        installSelectedWrapper(rootDir, activeWrapperMarker);
 
         extractOpenGLDriver(rootDir);
 
