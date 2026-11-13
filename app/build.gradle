@@ -151,7 +151,7 @@ preBuild.dependsOn(downloadComponentTools)
 
 android {
     sourceSets.main.jniLibs.srcDir(layout.buildDirectory.dir("generated/component-tools"))
-    namespace 'com.ludashi.benchmark'
+    namespace 'com.winlator.cmod'
     // Keep compileSdk from your current config. If you want to match Termux-X11, you could set to 34.
     compileSdk 35
     buildToolsVersion "35.0.0"
