@@ -190,7 +190,7 @@ jobs:
           import pathlib, re, sys
           root = pathlib.Path(sys.argv[1])
           package = (root / 'release-package.txt').read_text()
-          assert re.search(r"name='([^']+)'", package).group(1) == 'com.winlator.cmod', 'Application ID changed'
+          assert re.search(r"name='([^']+)'", package).group(1) == 'com.ludashi.benchmark', 'Application ID changed'
           assert int(re.search(r"versionCode='(\d+)'", package).group(1)) > 29, 'Release versionCode must increase'
           assert re.search(r"versionName='([^']+)'", package).group(1) == '5.0', 'Unexpected release version'
           print('Release identity and package verified')
