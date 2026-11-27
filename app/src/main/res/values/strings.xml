@@ -782,6 +782,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="steam_download_cancel_delete">Cancel and delete</string>
     <string name="steam_download_cancel_confirm">Delete all partially downloaded game files? This cannot be undone.</string>
     <string name="ui_frame_generation_engine">Frame generation engine</string>
+    <string name="sidebar_frame_generation_switch_failed">Could not switch frame generation engines.</string>
     <string name="ui_enable_wfg_frame_generation">Enable WFG frame generation</string>
     <string name="steam_cloud_launch_failed">Steam Cloud could not finish syncing. Retry or start with local saves. Starting without sync skips automatic launcher uploads for this session.</string>
     <string name="steam_cloud_launch_continue">Start without syncing</string>
@@ -804,4 +805,18 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="steam_demo_access_denied">Steam denied access to this demo’s download. If the demo is still offered, add it to the same Steam account in Steam and try again.</string>
     <string name="itch_remove_installed_help">This itch.io game is installed. Remove only the shortcut or uninstall the game and remove its shortcut.</string>
     <string name="itch_remove_shortcut_only">Remove shortcut only</string>
+    <string name="app_info_updates">App Updates</string>
+    <string name="app_info_installed">Installed version</string>
+    <string name="app_info_channel">Update channel</string>
+    <string name="app_info_stable">Stable</string>
+    <string name="app_info_development">Development</string>
+    <string name="app_info_dev_description">Experimental builds from GitHub Actions.</string>
+    <string name="app_info_stable_description">Receive stable releases only.</string>
+    <string name="app_info_download_install">Download &amp; install</string>
+    <string name="app_info_check_updates">Check for updates</string>
+    <string name="app_info_report_issue">Report issue</string>
+    <string name="app_info_close">Close</string>
+    <string name="app_info_developed_by">Developed by</string>
+    <string name="app_info_maintainer">Maintainer</string>
+    <string name="app_info_forked_from">Forked from</string>
 </resources>
