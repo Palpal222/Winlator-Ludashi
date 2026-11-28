@@ -8,6 +8,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.util.Log;
 import android.os.Handler;
+import android.view.Gravity;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.PointerIcon;
@@ -18,6 +19,8 @@ import android.widget.FrameLayout;
 import androidx.preference.PreferenceManager;
 
 import com.winlator.cmod.R;
+import com.winlator.cmod.XServerDisplayActivity;
+import com.winlator.cmod.container.Shortcut;
 import com.winlator.cmod.core.AppUtils;
 import com.winlator.cmod.math.Mathf;
 import com.winlator.cmod.math.XForm;
@@ -26,6 +29,8 @@ import com.winlator.cmod.winhandler.MouseEventFlags;
 import com.winlator.cmod.winhandler.WinHandler;
 import com.winlator.cmod.xserver.Pointer;
 import com.winlator.cmod.xserver.XServer;
+
+import java.lang.ref.WeakReference;
 
 public class TouchpadView extends View {
     private static final byte MAX_FINGERS = 4;
@@ -54,6 +59,11 @@ public class TouchpadView extends View {
     private static final Byte EFFECTIVE_TOUCH_DISTANCE = 20;
     private float resolutionScale;
     private static final int UPDATE_FORM_DELAYED_TIME = 50;
+    private static final String PREF_STRETCH_LEVEL = "fullscreen_stretch_level";
+    private static final String EXTRA_STRETCH_LEVEL = "fullscreenStretchLevel";
+    private static WeakReference<TouchpadView> activeInstance;
+    private int stretchWidth;
+    private int stretchHeight;
     private boolean mouseEnabled = true;
 
     private Handler timeoutHandler; // Reference to the activity's timeout handler
@@ -68,6 +78,7 @@ public class TouchpadView extends View {
     public TouchpadView(Context context, XServer xServer, Handler timeoutHandler, Runnable hideControlsRunnable) {
         super(context);
         this.xServer = xServer;
+        activeInstance = new WeakReference<>(this);
 
         this.timeoutHandler = timeoutHandler; // Store the reference to timeout handler
         this.hideControlsRunnable = hideControlsRunnable; // Store the reference to the hide controls runnable
@@ -102,6 +113,7 @@ public class TouchpadView extends View {
         super.onSizeChanged(w, h, oldw, oldh);
         updateXform(w, h, xServer.screenInfo.width, xServer.screenInfo.height);
         resolutionScale = 1000.0f / Math.min(xServer.screenInfo.width, xServer.screenInfo.height);
+        applyStretch();
     }
 
     private void updateXform(int outerWidth, int outerHeight, int innerWidth, int innerHeight) {
@@ -113,8 +125,80 @@ public class TouchpadView extends View {
         if (!xServer.getXServerView().isFullscreen()) {
             XForm.makeTranslation(xform, -viewTransformation.viewOffsetX, -viewTransformation.viewOffsetY);
             XForm.scale(xform, invAspect, invAspect);
+        } else if (stretchWidth > 0 && stretchHeight > 0) {
+            XForm.makeTranslation(xform, -(outerWidth - stretchWidth) / 2f, -(outerHeight - stretchHeight) / 2f);
+            XForm.scale(xform, (float) innerWidth / stretchWidth, (float) innerHeight / stretchHeight);
         } else
             XForm.makeScale(xform, (float) innerWidth / outerWidth, (float) innerHeight / outerHeight);
+    }
+
+    private static Shortcut currentShortcut(Context context) {
+        return context instanceof XServerDisplayActivity ? ((XServerDisplayActivity) context).getShortcut() : null;
+    }
+
+    public static int getStretchLevel(Context context) {
+        int level = 100;
+        Shortcut shortcut = currentShortcut(context);
+        if (shortcut != null) {
+            try {
+                level = Integer.parseInt(shortcut.getExtra(EXTRA_STRETCH_LEVEL, "100"));
+            } catch (NumberFormatException ignored) {
+            }
+        } else {
+            level = PreferenceManager.getDefaultSharedPreferences(context).getInt(PREF_STRETCH_LEVEL, 100);
+        }
+        return Math.max(0, Math.min(100, level));
+    }
+
+    public static void setStretchLevel(Context context, int level) {
+        level = Math.max(0, Math.min(100, level));
+        Shortcut shortcut = currentShortcut(context);
+        if (shortcut != null) {
+            shortcut.putExtra(EXTRA_STRETCH_LEVEL, level == 100 ? null : String.valueOf(level));
+            shortcut.saveData();
+        } else {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().putInt(PREF_STRETCH_LEVEL, level).apply();
+        }
+        TouchpadView instance = activeInstance != null ? activeInstance.get() : null;
+        if (instance != null) instance.post(instance::applyStretch);
+    }
+
+    private void applyStretch() {
+        View renderView = xServer.getXServerView();
+        int outerWidth = getWidth();
+        int outerHeight = getHeight();
+        int innerWidth = xServer.screenInfo.width;
+        int innerHeight = xServer.screenInfo.height;
+        if (renderView == null || outerWidth <= 0 || outerHeight <= 0 || innerHeight <= 0) return;
+
+        int width = outerWidth;
+        int height = outerHeight;
+        if (xServer.getXServerView().isFullscreen() && !xServer.getXServerView().isIntegerScaling()) {
+            float level = getStretchLevel(getContext()) / 100f;
+            float aspect = (float) innerWidth / innerHeight;
+            float fitWidth = Math.min(outerWidth, outerHeight * aspect);
+            float fitHeight = Math.min(outerHeight, outerWidth / aspect);
+            width = Math.round(fitWidth + (outerWidth - fitWidth) * level);
+            height = Math.round(fitHeight + (outerHeight - fitHeight) * level);
+        }
+
+        boolean custom = width != outerWidth || height != outerHeight;
+        ViewGroup.LayoutParams params = renderView.getLayoutParams();
+        if (params instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams frameParams = (FrameLayout.LayoutParams) params;
+            int targetWidth = custom ? width : ViewGroup.LayoutParams.MATCH_PARENT;
+            int targetHeight = custom ? height : ViewGroup.LayoutParams.MATCH_PARENT;
+            if (frameParams.width != targetWidth || frameParams.height != targetHeight) {
+                frameParams.width = targetWidth;
+                frameParams.height = targetHeight;
+                frameParams.gravity = Gravity.CENTER;
+                renderView.setLayoutParams(frameParams);
+            }
+        }
+
+        stretchWidth = custom ? width : 0;
+        stretchHeight = custom ? height : 0;
+        updateXform(outerWidth, outerHeight, innerWidth, innerHeight);
     }
 
     private class Finger {
@@ -737,8 +821,7 @@ public class TouchpadView extends View {
     }
 
     public void toggleFullscreen() {
-        new Handler().postDelayed(() -> updateXform(getWidth(), getHeight(), xServer.screenInfo.width, xServer.screenInfo.height),
-                UPDATE_FORM_DELAYED_TIME);
+        new Handler().postDelayed(this::applyStretch, UPDATE_FORM_DELAYED_TIME);
     }
     
     public void setMouseEnabled(boolean enabled) {
