@@ -503,7 +503,15 @@ object SteamSession {
         val name = SteamCatalog.installName(info)
         val branch = SteamInstallOptions.branch(context, id)
         val language = SteamInstallOptions.language(context, id)
-        val depots = SteamCatalog.depots(info, branch, language, ::info)
+        val liveLibrary = JSONObject(s.getLibrarySnapshotJson())
+        if (!isDemo && SteamCatalog.dlcDepotApps(info).isNotEmpty()) {
+            check(SteamCatalog.packageMetadataReady(liveLibrary)) {
+                context.getString(R.string.steam_dlc_wait_licenses)
+            }
+        }
+        val selectedDlc = SteamCatalog.selectedDlc(info, liveLibrary, SteamInstallOptions.excludedDlc(context, id))
+        val depots = SteamCatalog.depots(info, branch, language, selectedDlc, ::info)
+        val previousRecord = runCatching { SteamGames.info(context, id) }.getOrDefault(JSONObject())
         val freeToDownload = info.optJSONObject("common")?.let {
             it.optString("freetodownload", it.optString("FreeToDownload")) in listOf("1", "true")
         } == true
@@ -511,7 +519,7 @@ object SteamSession {
         val dir = SteamStorage.download(context, id, name)
         SteamGoldberg.restore(dir)
         SteamGoldberg.invalidate(dir)
-        downloadMeter = SteamDownloadMeter(depots.map { it.id }, depots.associate { it.id to it.size })
+        downloadMeter = null // Wait for the native entitlement-filtered depot order.
         downloading = true
         downloadId = id; downloadName = name; downloadDone = 0; downloadTotal = 0
         status = "Downloading $name…"
@@ -520,6 +528,11 @@ object SteamSession {
             s.downloadApp(id, depots.map { it.id }.toIntArray(), depots.map { it.manifest }.toLongArray(),
                 depots.map { if (freeToDownload || it.manifestAppId == 0) id else it.manifestAppId }.toIntArray(),
                 depots.map { it.manifestBranch }.toTypedArray(), dir.absolutePath, false, ca, SteamDownloadSettings.network(SteamDownloadSettings.tier(context)), object : LudashiDownloadListener {
+                    @androidx.annotation.Keep
+                    override fun onDepotsResolved(depotIds: IntArray) {
+                        if (session !== s || !signedIn) return
+                        downloadMeter = SteamDownloadMeter(depotIds.toList(), depots.associate { it.id to it.size })
+                    }
                     override fun onProgress(depotId: Int, depotDone: Long, depotTotal: Long, depotsDone: Int, depotsTotal: Int, verifying: Boolean) {
                         if (session !== s || !signedIn) return
                         downloadMeter?.update(depotId, depotDone, depotTotal, depotsDone, verifying, SystemClock.elapsedRealtime())
@@ -541,7 +554,8 @@ object SteamSession {
                                         File(dir, ".ludashi_depot/denied.depots").takeIf { it.isFile }
                                             ?.useLines { lines -> lines.mapNotNull { it.toIntOrNull() }.toSet() }
                                     }.getOrNull().orEmpty()
-                                    record.put("ludashiInstalledDepots", SteamCatalog.manifestList(depots.filterNot { it.id in denied }))
+                                    record.put("ludashiInstalledDepots", SteamCatalog.installedManifestList(
+                                        previousRecord, depots, depots.filterNot { it.id in denied }))
                                     SteamInstallRecord.write(context.filesDir, id, record)
                                     finalized = true
                                     SteamGoldberg.invalidate(dir)
