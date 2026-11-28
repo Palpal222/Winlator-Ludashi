@@ -44,6 +44,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.winlator.cmod.R
 import com.winlator.cmod.XServerDisplayActivity
 import com.winlator.cmod.ui.theme.*
+import com.winlator.cmod.widget.TouchpadView
 import com.winlator.cmod.widget.SeekBar as LegacySlider
 
 // WinLite's unified rail/panel presentation, adapted to Ludashi's existing rendering,
@@ -328,6 +329,13 @@ private fun FullscreenModeSelector(state: ModernSidebarController) {
                         )
                     }
                 }
+            }
+            if (mode == 1 || mode == 2) {
+                var level by remember(state.revision) { mutableFloatStateOf(TouchpadView.getStretchLevel(state.activity).toFloat()) }
+                Text("${uiStr(R.string.sidebar_stretch_amount)}: ${level.toInt()}%", style = MaterialTheme.typography.labelMedium)
+                Slider(level, { level = it },
+                    onValueChangeFinished = { TouchpadView.setStretchLevel(state.activity, level.toInt()) },
+                    valueRange = 0f..100f)
             }
         }
     }
